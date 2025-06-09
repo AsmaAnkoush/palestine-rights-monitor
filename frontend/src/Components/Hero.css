@@ -1,0 +1,36 @@
+.hero {
+  background-image: url('../images/images.jpeg');  /* تأكد من مسار الصورة */
+  background-size: cover;  /* تجعل الصورة تغطي كامل الخلفية */
+  background-position: center;  /* تجعل الصورة في المنتصف */
+  height: 100vh;  /* يجعل الصورة تغطي كامل الشاشة */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: white;
+  position: relative;
+}
+
+.hero h1 {
+  font-size: 60px;  /* يمكنك تعديل الحجم حسب حاجتك */
+  margin: 10px 0;
+}
+
+.hero p {
+  font-size: 24px;
+  margin-top: 10px;
+  max-width: 800px;
+}
+
+/* طبقة شفافة مظللة فوق الصورة */
+.hero::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(155, 153, 153, 0.7);  /* تظليل أقوى بنسبة 70% */
+  z-index: -1;  /* يجعل الصورة تبقى تحت النص */
+}

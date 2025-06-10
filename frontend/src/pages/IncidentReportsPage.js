@@ -20,7 +20,7 @@ const IncidentReportsPage = () => {
 
   const limit = 10;
 
-  const API_BASE_URL = 'http://localhost:8003';
+  const API_BASE_URL = 'http://localhost:8005';
 
   // --- CSS Styles consistent with CasesPage ---
   const thStyle = {

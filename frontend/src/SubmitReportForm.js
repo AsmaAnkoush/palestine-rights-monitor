@@ -134,7 +134,7 @@ function SubmitReportForm() {
     useEffect(() => {
         setIsClient(true);
 
-        fetch("http://localhost:8003/cases/violation_types?lang=en")
+        fetch("http://localhost:8005/cases/violation_types?lang=en")
             .then(res => {
                 if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
                 return res.json();
@@ -342,7 +342,7 @@ if (reportData.evidence && reportData.evidence.length > 0) {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-           const res = await fetch("http://localhost:8003/reports/", {
+           const res = await fetch("http://localhost:8005/reports/", {
     method: "POST",
     headers: {
         Authorization: `Bearer ${localStorage.getItem("jwt_token") || ""}`

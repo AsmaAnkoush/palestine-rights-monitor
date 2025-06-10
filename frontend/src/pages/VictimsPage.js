@@ -31,7 +31,7 @@ const VictimsPage = () => {
   const [casesLoading, setCasesLoading] = useState(true); // Loading state for cases
   const [casesError, setCasesError] = useState(null); // Error state for cases fetch
 
-  const API_BASE_URL = 'http://localhost:8003'; // Your FastAPI backend URL
+  const API_BASE_URL = 'http://localhost:8005'; // Your FastAPI backend URL
 
   // --- CSS Styles consistent with other admin pages ---
   const formContainerStyle = {

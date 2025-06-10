@@ -1,5 +1,7 @@
+// src/Components/Navbar.js
 import React from 'react';
 import './Navbar.css';
+import { Link } from 'react-router-dom';
 
 function Navbar() {
   return (
@@ -8,11 +10,13 @@ function Navbar() {
         <h2>Palestine Rights Monitor</h2>
       </div>
       <ul className="navbar-links">
-        <li><a href="#home">Home</a></li>
+        <li><Link to="/">Home</Link></li>
         <li><a href="#about">About</a></li>
         <li><a href="#how-it-works">How it works</a></li>
         <li><a href="#statistics">Statistics</a></li>
-        <li><a href="#login" className="login-btn">Login</a></li>
+        <li>
+          <Link to="/login" className="login-btn">Login</Link>
+        </li>
       </ul>
     </nav>
   );

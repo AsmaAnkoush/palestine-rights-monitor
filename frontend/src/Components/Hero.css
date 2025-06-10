@@ -1,19 +1,20 @@
 .hero {
-  background-image: url('../images/images.jpeg');  /* تأكد من مسار الصورة */
-  background-size: cover;  /* تجعل الصورة تغطي كامل الخلفية */
-  background-position: center;  /* تجعل الصورة في المنتصف */
-  height: 100vh;  /* يجعل الصورة تغطي كامل الشاشة */
+  background-image: url('../images/images.jpeg');  /* تأكد من المسار الصحيح للصورة */
+  background-size: cover;
+  background-position: center;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   text-align: center;
-  color: white;
+  color: black; /* خلي النص غامق عشان يوضح فوق التظليل الأبيض */
   position: relative;
+  z-index: 0;
 }
 
 .hero h1 {
-  font-size: 60px;  /* يمكنك تعديل الحجم حسب حاجتك */
+  font-size: 60px;
   margin: 10px 0;
 }
 
@@ -23,7 +24,7 @@
   max-width: 800px;
 }
 
-/* طبقة شفافة مظللة فوق الصورة */
+/* تظليل أبيض شفاف فوق الصورة */
 .hero::after {
   content: "";
   position: absolute;
@@ -31,6 +32,6 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(155, 153, 153, 0.7);  /* تظليل أقوى بنسبة 70% */
-  z-index: -1;  /* يجعل الصورة تبقى تحت النص */
+  background: rgba(255, 255, 255, 0.6);  /* أبيض بشفافية 60% */
+  z-index: -1;
 }

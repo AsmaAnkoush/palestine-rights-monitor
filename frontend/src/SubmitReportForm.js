@@ -134,7 +134,7 @@ function SubmitReportForm() {
     useEffect(() => {
         setIsClient(true);
 
-        fetch("http://localhost:8005/cases/violation_types?lang=en")
+        fetch("http://localhost:8006/cases/violation_types?lang=en")
             .then(res => {
                 if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
                 return res.json();
@@ -265,145 +265,149 @@ function SubmitReportForm() {
         }
         setReportData(prev => ({ ...prev, evidence: files }));
     };
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) {
+        alert("Please correct the errors in the form before submitting.");
+        return;
+    }
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        if (!validateForm()) {
-            alert("Please correct the errors in the form before submitting.");
-            return;
-        }
+    setIsSubmitting(true);
 
-        setIsSubmitting(true);
+    const formData = new FormData();
+    formData.append("reporter_type", reportData.reporter_type);
+    formData.append("anonymous", reportData.anonymous);
+    formData.append("pseudonym", reportData.pseudonym || "");
+    formData.append("status", reportData.status);
+    formData.append("priority", reportData.priority);
+    formData.append("created_by", localStorage.getItem("username") || "anonymous");
 
-        // Removed logic for 'otherCaseType' and submitting case suggestions
-        // if (reportData.incident_details.violation_types.includes("other") && !otherCaseType) {
-        //     alert("Please suggest a valid case type.");
-        //     setIsSubmitting(false);
-        //     return;
-        // }
-        // if (reportData.incident_details.violation_types.includes("other") && otherCaseType) {
-        //     try {
-        //         const suggestRes = await fetch("http://localhost:8000/case-types", {
-        //             method: "POST",
-        //             headers: { "Content-Type": "application/json" },
-        //             body: JSON.stringify({ name: otherCaseType }),
-        //         });
-        //         const suggestResult = await suggestRes.json();
-        //         if (!suggestRes.ok) throw new Error(suggestResult.message || "Failed to suggest case type.");
-        //         console.log("Suggestion submitted successfully:", suggestResult);
-        //     } catch (err) {
-        //         alert("Failed to submit suggestion: " + err.message);
-        //         console.error("Suggestion error:", err);
-        //         setIsSubmitting(false);
-        //         return;
-        //     }
-        // }
+    // **REQUIRED FIELDS as per FastAPI endpoint's `Form(...)` expectations:**
+    // Ensure these are directly appended as top-level form fields.
 
-        const formData = new FormData();
-formData.append("reporter_type", reportData.reporter_type);
-formData.append("anonymous", reportData.anonymous);
-formData.append("pseudonym", reportData.pseudonym || "");
-formData.append("status", reportData.status);
-formData.append("priority", reportData.priority);
-formData.append("created_by", localStorage.getItem("username") || "anonymous");
+    // 1. Title
+    // You MUST have an input field for 'title' in your JSX like:
+    // <input type="text" name="title" value={reportData.title} onChange={handleChange} required />
+    // Assuming `reportData.title` holds the value:
+    formData.append("title", reportData.title || ""); // Add a default empty string if not yet set for safety
+    // If your reportData state doesn't have a top-level 'title', you need to add it:
+    // const [reportData, setReportData] = useState({ ..., title: '', incident_details: { ... } });
+    // And modify handleChange to handle it:
+    // else if (name === "title") { newData[name] = value; }
 
-// Ensure GeoJSON coords are [lng, lat]
-const coords = selectedMapCoordinates
-    ? { type: "Point", coordinates: [selectedMapCoordinates[1], selectedMapCoordinates[0]] }
-    : { type: "Point", coordinates: [null, null] };
+    // 2. Description
+    // This is the field causing the current error. Make sure it's explicitly appended.
+    formData.append("description", reportData.incident_details.description || "");
 
-const incident_details = {
-    ...reportData.incident_details,
-    date: new Date(reportData.incident_details.date).toISOString(),
-    location: {
-        ...reportData.incident_details.location,
-        coordinates: coords,
-    },
-};
+    // 3. Violation Type
+    formData.append("violation_type", reportData.incident_details.violation_types.join(',') || "");
 
-formData.append("incident_details", JSON.stringify(incident_details));
+    // 4. Incident Date
+    let formattedIncidentDate = "";
+    if (reportData.incident_details.date) {
+        const dateObj = new Date(reportData.incident_details.date);
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const day = String(dateObj.getDate()).padStart(2, '0');
+        formattedIncidentDate = `${year}-${month}-${day}`;
+    }
+    formData.append("incident_date", formattedIncidentDate);
 
-if (!reportData.anonymous) {
-    formData.append("contact_info", JSON.stringify(reportData.contact_info));
-}
+    // 5. Incident Location Country
+    // You MUST have an input field for 'incident_location_country' in your JSX.
+    // E.g., <input type="text" name="incident_location_country" value={reportData.incident_details.location.country} onChange={handleChange} required />
+    // Assuming `reportData.incident_details.location.country` holds the value:
+    formData.append("incident_location_country", reportData.incident_details.location.country || "Palestine"); // Provide a default or ensure it's captured from the map/input
 
-// Files
-if (reportData.evidence && reportData.evidence.length > 0) {
-    Array.from(reportData.evidence).forEach((file) => {
-        formData.append("evidence", file);
-    });
-}
+    // Location coordinates and address can be separate if FastAPI expects them this way
+    const coords = selectedMapCoordinates
+        ? { type: "Point", coordinates: [selectedMapCoordinates[1], selectedMapCoordinates[0]] } // GeoJSON [lng, lat]
+        : { type: "Point", coordinates: [null, null] }; // Default to null coordinates
+
+    formData.append("incident_location_coordinates", JSON.stringify(coords));
+    formData.append("incident_location_address", reportData.incident_details.location.address || "");
 
 
-        try {
-            const token = localStorage.getItem("jwt_token");
-            const headers = {};
-            if (token) {
-                headers['Authorization'] = `Bearer ${token}`;
-            }
+    // **Crucial: Do NOT send the whole 'incident_details' object as a JSON string if FastAPI expects individual form fields.**
+    // If your FastAPI `create_report` function has parameters like:
+    // `title: str = Form(...)`, `description: str = Form(...)`, `incident_date: date = Form(...)`, etc.
+    // then you *must* append them individually to `FormData` as shown above.
 
-           const res = await fetch("http://localhost:8005/reports/", {
-    method: "POST",
-    headers: {
-        Authorization: `Bearer ${localStorage.getItem("jwt_token") || ""}`
-    },
-    body: formData,
-});
+    // Remaining fields (contact_info, evidence)
+    if (!reportData.anonymous) {
+        formData.append("contact_info", JSON.stringify(reportData.contact_info));
+    }
 
+    if (reportData.evidence && reportData.evidence.length > 0) {
+        Array.from(reportData.evidence).forEach((file) => {
+            formData.append("evidence", file);
+        });
+    }
 
-            const result = await res.json();
-            if (!res.ok) {
-                let errorMessage = "Failed to submit report.";
-                if (result.detail) {
-                    if (Array.isArray(result.detail)) {
-                        errorMessage = result.detail.map(err => `${err.loc.join(' -> ')}: ${err.msg}`).join('\n');
-                    } else if (typeof result.detail === 'string') {
-                        errorMessage = result.detail;
-                    }
+    try {
+        const token = localStorage.getItem("jwt_token");
+        // No explicit 'Content-Type' header for FormData, browser handles it.
+        const res = await fetch("http://localhost:8006/reports/", {
+            method: "POST",
+            headers: {
+                Authorization: `Bearer ${token || ""}`
+            },
+            body: formData,
+        });
+
+        const result = await res.json();
+        if (!res.ok) {
+            let errorMessage = "Failed to submit report.";
+            if (result.detail) {
+                if (Array.isArray(result.detail)) {
+                    errorMessage = result.detail.map(err => {
+                        const loc = err.loc.join(' -> ');
+                        const msg = err.msg;
+                        return `${loc}: ${msg}`;
+                    }).join('\n');
+                } else if (typeof result.detail === 'string') {
+                    errorMessage = result.detail;
                 }
-                throw new Error(errorMessage);
             }
-
-            alert("Report submitted successfully! Report ID: " + result.report_id);
-            console.log("Report created:", result.report_id);
-
-            // Reset form
-            setReportData({
-                reporter_type: "victim",
-                anonymous: false,
-                pseudonym: "",
-                contact_info: { email: "", phone: "", preferred_contact: "email" },
-                incident_details: {
-                    date: "",
-                    description: "",
-                    violation_types: [],
-                    // suggested_case_name: "", // Removed
-                    location: {
-                        // country: "", // Removed
-                        // region: "", // Removed
-                        // city: "", // Removed
-                        address: "", // Keep only general address
-                        coordinates: { type: "Point", coordinates: [null, null] }
-                    },
-                },
-                status: "pending_review",
-                priority: "medium",
-                // related_case_id: "", // Removed
-                evidence: [],
-            });
-            // setOtherCaseType(""); // Removed
-            setErrors({});
-            setSelectedMapCoordinates(null);
-            const fileInput = document.querySelector('input[type="file"]');
-            if (fileInput) fileInput.value = '';
-
-        } catch (err) {
-            alert("Submission failed: " + err.message);
-            console.error("Submission error:", err);
-        } finally {
-            setIsSubmitting(false);
+            throw new Error(errorMessage);
         }
-    };
+
+        alert("Report submitted successfully! Report ID: " + result.report_id);
+        console.log("Report created:", result.report_id);
+
+        // Reset form
+        setReportData({
+            reporter_type: "victim",
+            anonymous: false,
+            pseudonym: "",
+            contact_info: { email: "", phone: "", preferred_contact: "email" },
+            title: '', // Ensure title is part of initial state for reset
+            incident_details: {
+                date: "",
+                description: "",
+                violation_types: [],
+                location: {
+                    country: "", // Ensure country is part of initial state for reset
+                    address: "",
+                    coordinates: { type: "Point", coordinates: [null, null] }
+                },
+            },
+            status: "pending_review",
+            priority: "medium",
+            evidence: [],
+        });
+        setErrors({});
+        setSelectedMapCoordinates(null);
+        const fileInput = document.querySelector('input[type="file"]');
+        if (fileInput) fileInput.value = '';
+
+    } catch (err) {
+        alert("Submission failed: " + err.message);
+        console.error("Submission error:", err);
+    } finally {
+        setIsSubmitting(false);
+    }
+};
 
     // --- CSS Styles adapted from CasesPage ---
     const primaryOrange = '#ff9800';

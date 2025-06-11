@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaEdit, FaRedoAlt, FaChartBar } from 'react-icons/fa'; // Added FaChartBar for analytics icon
+import { FaEdit, FaRedoAlt, FaChartBar } from 'react-icons/fa';
 
 const IncidentReportsPage = () => {
   const [reports, setReports] = useState([]);
@@ -12,17 +12,14 @@ const IncidentReportsPage = () => {
   });
   const [editingReportId, setEditingReportId] = useState(null);
 
-  // New states for analytics data
   const [analyticsData, setAnalyticsData] = useState([]);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [analyticsError, setAnalyticsError] = useState(null);
 
-
   const limit = 10;
+  const API_BASE_URL = 'http://localhost:8006';
 
-  const API_BASE_URL = 'http://localhost:8005';
-
-  // --- CSS Styles consistent with CasesPage ---
+  // --- CSS Styles (unchanged) ---
   const thStyle = {
     padding: '14px',
     textAlign: 'left',
@@ -93,8 +90,13 @@ const IncidentReportsPage = () => {
     setError(null);
     try {
       const queryParams = new URLSearchParams();
+      // ✅ التعديل هنا: إضافة الفلاتر فقط إذا كانت لها قيمة غير فارغة
       if (filters.status) queryParams.append('status', filters.status);
-      if (filters.incidentDate) queryParams.append('incident_date', filters.incidentDate);
+
+      if (filters.incidentDate) {
+        queryParams.append('start_date', filters.incidentDate);
+        queryParams.append('end_date', filters.incidentDate);
+      }
       if (filters.location) queryParams.append('location', filters.location);
       queryParams.append('limit', limit);
 
@@ -105,6 +107,8 @@ const IncidentReportsPage = () => {
       }
       const data = await response.json();
       setReports(data.reports);
+      // إذا كان الـ Backend يرجع "total" للصفحات، تأكد من استخدامه هنا:
+      // setTotalReports(data.total); // افترض أنك تملك هذا الـ state
     } catch (err) {
       console.error("Error fetching reports:", err);
       setError(err.message);
@@ -134,11 +138,11 @@ const IncidentReportsPage = () => {
 
   useEffect(() => {
     fetchReports();
-  }, [filters]);
+  }, [filters]); // يعيد جلب التقارير عند تغير الفلاتر
 
   useEffect(() => {
-    fetchAnalytics(); // Fetch analytics data on component mount
-  }, []); // Empty dependency array means this runs once on mount
+    fetchAnalytics();
+  }, []); // يجلب تحليلات مرة واحدة عند تحميل المكون
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -157,7 +161,7 @@ const IncidentReportsPage = () => {
   };
 
   const handleEditStatus = async (reportId, newStatus) => {
-    setLoading(true);
+    setLoading(true); // يمكن أن يكون هذا state منفصل لتحديث الحالة
     try {
       const response = await fetch(`${API_BASE_URL}/reports/${reportId}`, {
         method: 'PATCH',
@@ -172,12 +176,13 @@ const IncidentReportsPage = () => {
         throw new Error(errorData.detail || 'Failed to update report status');
       }
 
+      // تحديث حالة التقرير في الـ state مباشرة
       setReports(prevReports =>
         prevReports.map(report =>
           report.report_id === reportId ? { ...report, status: newStatus } : report
         )
       );
-      setEditingReportId(null);
+      setEditingReportId(null); // إيقاف وضع التحرير بعد التحديث
     } catch (err) {
       console.error("Error updating report status:", err);
       setError(err.message);
@@ -207,7 +212,7 @@ const IncidentReportsPage = () => {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', justifyContent: 'center' }}>
             {analyticsData.map((item, index) => (
               <div key={index} style={{
-                backgroundColor: '#ffecb3', // Lighter orange for analytics cards
+                backgroundColor: '#ffecb3',
                 padding: '15px 20px',
                 borderRadius: '10px',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
@@ -215,9 +220,10 @@ const IncidentReportsPage = () => {
                 textAlign: 'center',
                 border: '1px solid #ffcc80',
                 flexGrow: 1,
-                maxWidth: 'calc(33% - 10px)', // Adjust as needed for responsiveness
+                maxWidth: 'calc(33% - 10px)',
               }}>
                 <p style={{ fontSize: '1.1em', fontWeight: 'bold', color: '#e65100', marginBottom: '5px' }}>
+                  {/* Access violation_type from analytics item */}
                   {item.violation_type.replace(/_/g, ' ')}
                 </p>
                 <p style={{ fontSize: '1.8em', fontWeight: 'bold', color: '#ff9800' }}>
@@ -351,13 +357,13 @@ const IncidentReportsPage = () => {
                           fontSize: '0.75em',
                           fontWeight: '600',
                           color: report.status === 'Approved' ? '#2e7d32' :
-                                  report.status === 'pending_review' ? '#f57f17' :
-                                  report.status === 'Rejected' ? '#c62828' :
-                                  report.status === 'Under Review' ? '#1565c0' : '#4e342e',
+                            report.status === 'pending_review' ? '#f57f17' :
+                              report.status === 'Rejected' ? '#c62828' :
+                                report.status === 'Under Review' ? '#1565c0' : '#4e342e',
                           backgroundColor: report.status === 'Approved' ? '#e8f5e9' :
-                                            report.status === 'pending_review' ? '#fffde7' :
-                                            report.status === 'Rejected' ? '#ffebee' :
-                                            report.status === 'Under Review' ? '#e3f2fd' : '#f5f5f5',
+                            report.status === 'pending_review' ? '#fffde7' :
+                              report.status === 'Rejected' ? '#ffebee' :
+                                report.status === 'Under Review' ? '#e3f2fd' : '#f5f5f5',
                           boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                         }}>
                           {report.status.replace(/_/g, ' ')}
@@ -365,9 +371,11 @@ const IncidentReportsPage = () => {
                       )}
                     </td>
                     <td style={tdStyle}>
+                      {/* Access date from incident_details */}
                       {report.incident_details?.date ? new Date(report.incident_details.date).toLocaleDateString() : 'N/A'}
                     </td>
                     <td style={tdStyle}>
+                      {/* Access location address from incident_details.location */}
                       {report.incident_details?.location?.address || 'N/A'}
                     </td>
                     <td style={tdStyle}>{report.reporter_type}</td>

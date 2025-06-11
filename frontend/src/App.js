@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Hero from './Components/Hero';
 import Login from './Components/Login';
+import VictimDetailsPage from './pages/VictimDetailsPage'; // تأكد من وجود الملف
 
 // Admin-specific pages
 import AdminDashboard from './pages/AdminDashboard'; // Assuming this is Admin's main layout
@@ -39,6 +40,8 @@ function App() {
           <Route path="reports" element={<IncidentReportsPage />} />
           {/* New route for VictimsPage */}
           <Route path="victims" element={<VictimsPage />} />
+          <Route path="victims/:id" element={<VictimDetailsPage />} />
+
           {/* Add other admin-specific routes here, e.g., analytics, user management */}
         </Route>
 

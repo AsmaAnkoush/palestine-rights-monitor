@@ -13,7 +13,7 @@ function Navbar() {
         <li><Link to="/">Home</Link></li>
         <li><a href="#about">About</a></li>
         <li><a href="#how-it-works">How it works</a></li>
-        <li><a href="#statistics">Statistics</a></li>
+        {/* The Statistics link has been removed from here */}
         <li>
           <Link to="/login" className="login-btn">Login</Link>
         </li>

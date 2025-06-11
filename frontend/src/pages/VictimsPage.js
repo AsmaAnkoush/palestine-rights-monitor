@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaUserPlus, FaSave, FaTimesCircle, FaEye, FaEdit } from 'react-icons/fa'; // Changed FaTrash to FaEdit
+import { FaUserPlus, FaSave, FaTimesCircle, FaEye, FaEdit } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
 const VictimsPage = () => {
@@ -45,6 +45,7 @@ const VictimsPage = () => {
 
   const API_BASE_URL = 'http://localhost:8006';
 
+  // --- Styles (remain the same) ---
   const formContainerStyle = {
     backgroundColor: '#fff3e0',
     padding: '30px',
@@ -180,6 +181,7 @@ const VictimsPage = () => {
     color: '#ff9800',
     transition: 'color 0.2s ease',
   };
+  // --- End Styles ---
 
   const fetchCases = async () => {
     setCasesLoading(true);
@@ -305,16 +307,18 @@ const VictimsPage = () => {
         dataToSend.contact_info = undefined;
       }
 
-      const token = localStorage.getItem("jwt_token");
-      if (!token) {
-        throw new Error("Authentication token not found. Please log in.");
-      }
+      // --- REMOVE THESE LINES ---
+      // const token = localStorage.getItem("jwt_token");
+      // if (!token) {
+      //   throw new Error("Authentication token not found. Please log in.");
+      // }
+      // --- END REMOVAL ---
 
       const response = await fetch(`${API_BASE_URL}/victims/`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          // 'Authorization': `Bearer ${token}`, // REMOVE THIS LINE TOO
         },
         body: JSON.stringify(dataToSend),
       });
@@ -391,16 +395,18 @@ const VictimsPage = () => {
     setMessageType('');
 
     try {
-      const token = localStorage.getItem("jwt_token");
-      if (!token) {
-        throw new Error("Authentication token not found. Please log in.");
-      }
+      // --- REMOVE THESE LINES ---
+      // const token = localStorage.getItem("jwt_token");
+      // if (!token) {
+      //   throw new Error("Authentication token not found. Please log in.");
+      // }
+      // --- END REMOVAL ---
 
       const response = await fetch(`${API_BASE_URL}/victims/${individualId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+          // 'Authorization': `Bearer ${token}`, // REMOVE THIS LINE TOO
         },
         body: JSON.stringify({ risk_assessment: { level: currentRiskLevel } }),
       });
@@ -420,8 +426,8 @@ const VictimsPage = () => {
 
       setMessage(`✅ Risk level for individual ${individualId.substring(0, 8)}... updated successfully!`);
       setMessageType('success');
-      setEditingRiskLevelId(null); // Exit editing mode
-      fetchIndividuals(); // Refresh the list to show updated data
+      setEditingRiskLevelId(null);
+      fetchIndividuals();
     } catch (err) {
       console.error("Error updating risk level:", err);
       setMessage(`❌ Error updating risk level: ${err.message}`);
@@ -788,7 +794,7 @@ const VictimsPage = () => {
                       <select
                         value={currentRiskLevel}
                         onChange={(e) => setCurrentRiskLevel(e.target.value)}
-                        style={{...selectStyle, width: 'auto', display: 'inline-block'}}
+                        style={{ ...selectStyle, width: 'auto', display: 'inline-block' }}
                       >
                         <option value="Low">Low</option>
                         <option value="Medium">Medium</option>
@@ -847,7 +853,6 @@ const VictimsPage = () => {
                       <button
                         onClick={() => handleEditRiskLevelClick(individual.id, individual.risk_assessment?.level || 'Low')}
                         style={{ ...actionButtonStyle, color: '#ff9800' }}
-                        title="Edit Risk Level"
                       >
                         <FaEdit />
                       </button>
@@ -859,7 +864,6 @@ const VictimsPage = () => {
           </table>
         </div>
       )}
-
     </div>
   );
 };

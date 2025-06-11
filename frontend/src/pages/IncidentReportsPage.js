@@ -13,7 +13,7 @@ const IncidentReportsPage = () => {
   const [editingReportId, setEditingReportId] = useState(null);
 
   const [analyticsData, setAnalyticsData] = useState([]);
-  const [analyticsLoading, setAnalyticsLoading] = useState(true);
+const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [analyticsError, setAnalyticsError] = useState(null);
 
   const limit = 10;
@@ -323,7 +323,7 @@ const IncidentReportsPage = () => {
                   <th style={thStyle}>Location Address</th>
                   <th style={thStyle}>Reporter Type</th>
                   <th style={thStyle}>Priority</th>
-                  <th style={thStyle}>Related Case</th>
+                  {/* تم إزالة عمود Related Case */}
                   <th style={{ ...thStyle, textAlign: 'center', minWidth: '100px' }}>Actions</th>
                 </tr>
               </thead>
@@ -380,9 +380,7 @@ const IncidentReportsPage = () => {
                     </td>
                     <td style={tdStyle}>{report.reporter_type}</td>
                     <td style={tdStyle}>{report.priority}</td>
-                    <td style={tdStyle}>
-                      {report.related_case_id || 'N/A'}
-                    </td>
+                    {/* تم إزالة خلية بيانات Related Case */}
                     <td style={{ ...tdStyle, whiteSpace: 'nowrap', textAlign: 'center' }}>
                       {editingReportId === report.report_id ? (
                         <button

@@ -9,3 +9,5 @@ db_instance = client["human_rights_mis"]
 # ✅ Dependency function to provide DB to routes
 async def get_db():
     return db_instance
+
+

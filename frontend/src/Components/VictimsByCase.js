@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom'; // أضفت Link
-import { FaArrowLeft, FaExclamationCircle, FaSpinner } from 'react-icons/fa'; // أيقونات إضافية
+import { useParams, Link } from 'react-router-dom';
+import { FaArrowLeft, FaExclamationCircle, FaSpinner } from 'react-icons/fa';
 
 const VictimsByCase = () => {
-  const { caseId } = useParams(); // يجلب caseId من الـ URL (مثلاً: /victims/case/HRM-2023-0423)
+  const { caseId } = useParams();
   const [victims, setVictims] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const API_BASE_URL = 'http://localhost:8006'; // تأكد أنه نفس عنوان الـ API تبعك
+  const API_BASE_URL = 'http://localhost:8006';
 
   useEffect(() => {
     const fetchVictimsForCase = async () => {
@@ -30,12 +30,11 @@ const VictimsByCase = () => {
       }
     };
 
-    if (caseId) { // تأكد من وجود caseId قبل محاولة الجلب
+    if (caseId) {
       fetchVictimsForCase();
     }
-  }, [caseId]); // أعد الجلب عندما يتغير caseId في الـ URL
+  }, [caseId]);
 
-  // --- أنماط CSS بسيطة للمظهر (يمكنك نقلها لملف CSS منفصل أو استخدام Tailwind/Styled Components) ---
   const containerStyle = {
     padding: '3rem',
     backgroundColor: '#fffbe6',
@@ -61,7 +60,7 @@ const VictimsByCase = () => {
     boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
     maxWidth: '1200px',
     margin: 'auto',
-    overflowX: 'auto', // للسماح بالتمرير الأفقي للجداول الكبيرة
+    overflowX: 'auto',
   };
 
   const tableStyle = {
@@ -167,7 +166,6 @@ const VictimsByCase = () => {
                 <th style={thStyle}>Cases Involved</th>
                 <th style={thStyle}>Created By</th>
                 <th style={thStyle}>Created At</th>
-                {/* يمكنك إضافة المزيد من الأعمدة هنا إذا أردت */}
               </tr>
             </thead>
             <tbody>
@@ -208,7 +206,6 @@ const VictimsByCase = () => {
           </table>
         )}
       </div>
-      {/* ستايل بسيط للـ spinner */}
       <style>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }

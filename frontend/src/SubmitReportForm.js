@@ -1,10 +1,9 @@
 // src/SubmitReportForm.js
 import React, { useState, useEffect } from "react";
-import 'leaflet/dist/leaflet.css'; // لا تزال هذه ضرورية لـ Leaflet
+import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 
-// Fix for default Leaflet marker icon (crucial!)
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
@@ -12,7 +11,6 @@ L.Icon.Default.mergeOptions({
     shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
 });
 
-// LocationPicker component (moved outside for conditional loading)
 function LocationPicker({ selectedMapCoordinates, setSelectedMapCoordinates, setReportData, clearLocationError }) {
     const PALESTINE_CENTER = [31.7683, 35.2137];
     const mapInitialPosition = selectedMapCoordinates || PALESTINE_CENTER;
@@ -34,15 +32,12 @@ function LocationPicker({ selectedMapCoordinates, setSelectedMapCoordinates, set
             .then(res => res.json())
             .then(data => {
                 const address = data.display_name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-                // استخراج اسم البلد إن وُجد
                 const country = data.address.country || "";
 
                 setReportData(prev => ({
                     ...prev,
-                    // تحديث حقول الموقع على المستوى الأعلى من reportData
                     incident_location_address: address,
                     incident_location_country: country,
-                    // الكوردينيتس يتم التعامل معها عبر selectedMapCoordinates ثم تحويلها لـ JSON في handleSubmit
                 }));
             })
             .catch(err => {
@@ -50,7 +45,7 @@ function LocationPicker({ selectedMapCoordinates, setSelectedMapCoordinates, set
                 setReportData(prev => ({
                     ...prev,
                     incident_location_address: `${lat.toFixed(5)}, ${lng.toFixed(5)} (Could not retrieve full address)`,
-                    incident_location_country: "", // مسح البلد في حالة فشل الجلب
+                    incident_location_country: "",
                 }));
             });
     };
@@ -74,23 +69,20 @@ function SubmitReportForm() {
     const [violationOptions, setViolationOptions] = useState([]);
     const [selectedMapCoordinates, setSelectedMapCoordinates] = useState(null);
 
-    // ************* تم تحديث هيكلة reportData لتكون مسطحة *************
     const [reportData, setReportData] = useState({
         reporter_type: "victim",
         anonymous: false,
         pseudonym: "",
         contact_info: { email: "", phone: "", preferred_contact: "email" },
-        title: "", // <--- حقل العنوان أصبح هنا مباشرة
-        description: "", // <--- الوصف أصبح هنا مباشرة
-        violation_types: [], // <--- أنواع الانتهاكات أصبحت هنا مباشرة
-        incident_date: "", // <--- تاريخ الحادث أصبح هنا مباشرة
-        incident_location_country: "", // <--- البلد أصبح هنا مباشرة
-        incident_location_address: "", // <--- العنوان العام أصبح هنا مباشرة
-        // إحداثيات الموقع (coordinates) لا تبقى في حالة reportData مباشرة،
-        // بل يتم الحصول عليها من selectedMapCoordinates قبل الإرسال.
+        title: "",
+        description: "",
+        violation_types: [],
+        incident_date: "",
+        incident_location_country: "",
+        incident_location_address: "",
         status: "pending_review",
         priority: "medium",
-        evidence: [], // الملفات المرفقة
+        evidence: [],
     });
 
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -119,7 +111,6 @@ function SubmitReportForm() {
 
     const validateForm = () => {
         const newErrors = {};
-        // التحقق من الحقول التي أصبحت مباشرة في reportData
         const { title, description, incident_date, incident_location_address, violation_types, contact_info, anonymous } = reportData;
 
         if (!title) newErrors.title = "Report Title is required.";
@@ -128,14 +119,13 @@ function SubmitReportForm() {
 
         if (!selectedMapCoordinates) {
             newErrors.location = "Please select a location on the map.";
-        } else if (!incident_location_address) { // التأكد أن العنوان قد تم جلبه من الخريطة
+        } else if (!incident_location_address) {
             newErrors.location = "Location address could not be determined. Please try clicking on the map again or manually enter coordinates.";
         }
 
-
         if (!anonymous && !contact_info.email) newErrors.email = "Email is required if not anonymous.";
 
-        if (violation_types.length === 0) { // التحقق من أنواع الانتهاكات
+        if (violation_types.length === 0) {
             newErrors.violation_types = "Please select at least one violation type.";
         }
 
@@ -143,7 +133,6 @@ function SubmitReportForm() {
             newErrors.email = "Please provide a valid email address.";
         }
 
-        // تم تعديل رقم الهاتف ليقبل التنسيقات الفلسطينية
         if (contact_info.phone && !/^((\+|00)?970|0)5[0-9]{8}$/.test(contact_info.phone)) {
             newErrors.phone = "Please provide a valid phone number (e.g., 0599123456 or +970599123456).";
         }
@@ -161,7 +150,6 @@ function SubmitReportForm() {
             if (name === "anonymous") {
                 newData[name] = checked;
                 if (checked) {
-                    // مسح معلومات الاتصال إذا كان مجهول الهوية
                     newData.contact_info = { email: "", phone: "", preferred_contact: "email" };
                 } else {
                     newData.pseudonym = "";
@@ -170,17 +158,13 @@ function SubmitReportForm() {
                 const field = name.split(".")[1];
                 newData.contact_info = { ...prev.contact_info, [field]: value };
             }
-            // بما أن الحقول أصبحت على المستوى الأعلى، لا نحتاج لتفرعات incident_details.location
             else {
-                newData[name] = value; // تحديث مباشر للحقول العلوية
+                newData[name] = value;
             }
             return newData;
         });
 
-        // مسح الخطأ بمجرد أن يبدأ المستخدم في الكتابة
-        // يمكن أن يتغير اسم الحقل للخطأ إذا كان nested في السابق
-        const fieldNameForError = name.includes('.') ? name.split('.').pop() : name; // يحاول الحصول على اسم الحقل الأخير
-        // بعض الأخطاء مثل 'location' و 'violation_types' يتم مسحها بدوال خاصة
+        const fieldNameForError = name.includes('.') ? name.split('.').pop() : name;
         if (errors[fieldNameForError] && ['description', 'title', 'incident_date', 'email', 'phone'].includes(fieldNameForError)) {
             setErrors(prev => {
                 const newErrors = { ...prev };
@@ -194,7 +178,7 @@ function SubmitReportForm() {
         const selectedOptions = Array.from(e.target.selectedOptions, opt => opt.value);
         setReportData(prev => ({
             ...prev,
-            violation_types: selectedOptions, // تحديث حقل violation_types مباشرة
+            violation_types: selectedOptions,
         }));
         if (errors.violation_types) {
             setErrors(prev => {
@@ -227,7 +211,6 @@ function SubmitReportForm() {
 
         const formData = new FormData();
 
-        // **1. الحقول الرئيسية (Form fields) كما يتوقعها الـ Backend مباشرةً**
         formData.append("reporter_type", reportData.reporter_type);
         formData.append("anonymous", reportData.anonymous);
         formData.append("pseudonym", reportData.pseudonym || "");
@@ -235,12 +218,10 @@ function SubmitReportForm() {
         formData.append("priority", reportData.priority);
         formData.append("created_by", localStorage.getItem("username") || "anonymous");
 
-        // حقول التقرير الأساسية (مهم جداً أن تتطابق الأسماء مع Form(...) في الـ Backend)
         formData.append("title", reportData.title);
         formData.append("description", reportData.description);
-        formData.append("violation_type", reportData.violation_types.join(',')); // اسم الحقل singular في الـ Backend
+        formData.append("violation_type", reportData.violation_types.join(','));
 
-        // تنسيق التاريخ إلى YYYY-MM-DD
         let formattedIncidentDate = "";
         if (reportData.incident_date) {
             const dateObj = new Date(reportData.incident_date);
@@ -251,25 +232,21 @@ function SubmitReportForm() {
         }
         formData.append("incident_date", formattedIncidentDate);
 
-        // حقول الموقع
         formData.append("incident_location_country", reportData.incident_location_country || "Palestine");
         formData.append("incident_location_address", reportData.incident_location_address || "");
 
-        // إحداثيات الموقع - يجب أن تكون [longitude, latitude] لـ GeoJSON
         const coords = selectedMapCoordinates
             ? { type: "Point", coordinates: [selectedMapCoordinates[1], selectedMapCoordinates[0]] }
             : { type: "Point", coordinates: [null, null] };
         formData.append("incident_location_coordinates", JSON.stringify(coords));
 
-        // 2. معلومات الاتصال (JSON string)
         if (!reportData.anonymous) {
             formData.append("contact_info", JSON.stringify(reportData.contact_info));
         }
 
-        // 3. ملفات الإثبات (Evidence files)
         if (reportData.evidence && reportData.evidence.length > 0) {
             Array.from(reportData.evidence).forEach((file) => {
-                formData.append("evidence", file); // يجب أن يتطابق 'evidence' مع اسم بارامتر List[UploadFile] في الـ Backend
+                formData.append("evidence", file);
             });
         }
 
@@ -303,7 +280,6 @@ function SubmitReportForm() {
             alert("Report submitted successfully! Report ID: " + result.report_id);
             console.log("Report created:", result.report_id);
 
-            // ************* إعادة تعيين النموذج بعد النجاح *************
             setReportData({
                 reporter_type: "victim",
                 anonymous: false,
@@ -332,16 +308,15 @@ function SubmitReportForm() {
         }
     };
 
-    // --- CSS Styles adapted from CasesPage ---
     const primaryOrange = '#ff9800';
     const darkOrange = '#e65100';
     const lightOrange = '#fff3e0';
     const darkText = '#4e342e';
-    const lightGrayBorder = '#ffe0b2'; // Used for table borders in CasesPage, adapting for form borders
+    const lightGrayBorder = '#ffe0b2';
 
     const inputBorderRadius = '6px';
     const buttonBorderRadius = '8px';
-    const containerBorderRadius = '12px'; // For form sections and main container
+    const containerBorderRadius = '12px';
 
     const formContainerStyle = {
         padding: '40px',
@@ -392,7 +367,7 @@ function SubmitReportForm() {
     };
 
     const inputStyle = {
-        width: 'calc(100% - 20px)', // Account for padding
+        width: 'calc(100% - 20px)',
         padding: '10px',
         border: `1px solid ${lightGrayBorder}`,
         borderRadius: inputBorderRadius,
@@ -410,7 +385,7 @@ function SubmitReportForm() {
 
     const selectStyle = {
         ...inputStyle,
-        height: '40px', // Standard height for selects
+        height: '40px',
     };
 
     const checkboxContainerStyle = {
@@ -432,7 +407,7 @@ function SubmitReportForm() {
     };
 
     const errorMessageStyle = {
-        color: '#d32f2f', // A darker red for errors
+        color: '#d32f2f',
         fontSize: '0.85em',
         marginTop: '5px',
         borderLeft: '3px solid #d32f2f',
@@ -442,10 +417,10 @@ function SubmitReportForm() {
     const formErrorsBoxStyle = {
         color: '#d32f2f',
         marginBottom: '20px',
-        border: '1px solid #ef9a9a', // Lighter red border
+        border: '1px solid #ef9a9a',
         padding: '15px',
         borderRadius: '8px',
-        background: '#ffebee', // Very light red background
+        background: '#ffebee',
         fontSize: '0.9em',
         boxShadow: '0 2px 8px rgba(211, 47, 47, 0.1)',
     };
@@ -546,7 +521,6 @@ function SubmitReportForm() {
 
     return (
         <>
-            {/* Embedded CSS Styles */}
             <style>
                 {`
                     .form-container:hover {
@@ -622,7 +596,6 @@ function SubmitReportForm() {
                         box-shadow: none;
                     }
 
-                    /* Responsive Adjustments */
                     @media (max-width: 768px) {
                         .form-container {
                             padding: 25px;
@@ -737,7 +710,6 @@ function SubmitReportForm() {
                     <section style={{ marginBottom: '25px', padding: '25px', backgroundColor: '#fff', borderRadius: containerBorderRadius, boxShadow: '0 2px 8px rgba(0,0,0,0.03)', border: `1px solid ${lightGrayBorder}` }}>
                         <h3 style={sectionHeadingStyle}>Incident Details</h3>
 
-                        {/* Title Field */}
                         <div style={formGroupStyle}>
                             <label htmlFor="title" style={labelStyle}>Report Title:</label>
                             <input
@@ -753,7 +725,6 @@ function SubmitReportForm() {
                             {errors.title && <p style={errorMessageStyle}>{errors.title}</p>}
                         </div>
 
-                        {/* Description Field */}
                         <div style={formGroupStyle}>
                             <label htmlFor="description" style={labelStyle}>Description:</label>
                             <textarea
@@ -769,14 +740,13 @@ function SubmitReportForm() {
                             {errors.description && <p style={errorMessageStyle}>{errors.description}</p>}
                         </div>
 
-                        {/* Violation Types Field */}
                         <div style={formGroupStyle}>
                             <label htmlFor="violation_types" style={labelStyle}>Violation Types:</label>
                             <select
                                 id="violation_types"
-                                name="violation_types" // Use the new name from state
+                                name="violation_types"
                                 multiple
-                                value={reportData.violation_types} // Use the new state field
+                                value={reportData.violation_types}
                                 onChange={handleViolationTypesChange}
                                 style={{ ...selectStyle, height: 'auto', minHeight: '100px' }}
                                 required
@@ -787,17 +757,16 @@ function SubmitReportForm() {
                                     </option>
                                 ))}
                             </select>
-                            <p style={hintTextStyle}>Hold Ctrl (or Cmd on Mac) to select multiple.</p>
                             {errors.violation_types && <p style={errorMessageStyle}>{errors.violation_types}</p>}
+                            <p style={hintTextStyle}>Hold Ctrl/Cmd to select multiple types.</p>
                         </div>
 
-                        {/* Date of Incident Field */}
                         <div style={formGroupStyle}>
                             <label htmlFor="incident_date" style={labelStyle}>Date of Incident:</label>
                             <input
                                 type="date"
                                 id="incident_date"
-                                name="incident_date" // Use the new state field
+                                name="incident_date"
                                 value={reportData.incident_date}
                                 onChange={handleChange}
                                 style={inputStyle}
@@ -806,35 +775,27 @@ function SubmitReportForm() {
                             {errors.incident_date && <p style={errorMessageStyle}>{errors.incident_date}</p>}
                         </div>
 
-                        <h4 style={subHeadingStyle}>Incident Location</h4>
                         <div style={formGroupStyle}>
-                            <label style={labelStyle}>Select Location on Map:</label>
+                            <h4 style={subHeadingStyle}>Incident Location:</h4>
                             {isClient ? (
                                 <LocationPicker
                                     selectedMapCoordinates={selectedMapCoordinates}
                                     setSelectedMapCoordinates={setSelectedMapCoordinates}
-                                    setReportData={setReportData} // تمرير setReportData
+                                    setReportData={setReportData}
                                     clearLocationError={clearLocationError}
                                 />
                             ) : (
-                                <div style={mapLoadingPlaceholderStyle}>Loading Map...</div>
+                                <div style={mapLoadingPlaceholderStyle}>
+                                    Loading Map...
+                                </div>
                             )}
                             {errors.location && <p style={errorMessageStyle}>{errors.location}</p>}
 
                             {selectedMapCoordinates && (
                                 <div style={selectedCoordinatesStyle} className="selected-coordinates">
                                     <span>
-                                        **Selected Coordinates:** {selectedMapCoordinates[0].toFixed(5)}, {selectedMapCoordinates[1].toFixed(5)}
-                                        {reportData.incident_location_address && (
-                                            <span style={{ marginLeft: '10px', fontStyle: 'italic', color: '#666' }}>
-                                                (Address: {reportData.incident_location_address})
-                                            </span>
-                                        )}
-                                        {reportData.incident_location_country && (
-                                            <span style={{ marginLeft: '5px', fontStyle: 'italic', color: '#666' }}>
-                                                (Country: {reportData.incident_location_country})
-                                            </span>
-                                        )}
+                                        Selected: {selectedMapCoordinates[0].toFixed(5)}, {selectedMapCoordinates[1].toFixed(5)}
+                                        {reportData.incident_location_address && ` (${reportData.incident_location_address})`}
                                     </span>
                                     <button
                                         type="button"
@@ -843,8 +804,9 @@ function SubmitReportForm() {
                                             setReportData(prev => ({
                                                 ...prev,
                                                 incident_location_address: "",
-                                                incident_location_country: "",
+                                                incident_location_country: ""
                                             }));
+                                            setErrors(prev => ({ ...prev, location: "Please select a location on the map." }));
                                         }}
                                         style={clearSelectionButtonStyle}
                                         className="clear-selection-button"
@@ -853,85 +815,59 @@ function SubmitReportForm() {
                                     </button>
                                 </div>
                             )}
-                        </div>
-
-                        {/* Hidden inputs for country and address, or display if you want manual override */}
-                        {/* <div style={formGroupStyle}>
-                            <label htmlFor="incident_location_country" style={labelStyle}>Country (from Map):</label>
-                            <input
-                                type="text"
-                                id="incident_location_country"
-                                name="incident_location_country"
-                                value={reportData.incident_location_country}
-                                onChange={handleChange} // Keep this if you want manual override
-                                style={inputStyle}
-                                readOnly={true} // Set to false if you want manual override
-                            />
-                        </div>
-                        <div style={formGroupStyle}>
-                            <label htmlFor="incident_location_address" style={labelStyle}>Full Address (from Map):</label>
-                            <input
-                                type="text"
-                                id="incident_location_address"
-                                name="incident_location_address"
-                                value={reportData.incident_location_address}
-                                onChange={handleChange} // Keep this if you want manual override
-                                style={inputStyle}
-                                readOnly={true} // Set to false if you want manual override
-                            />
-                        </div>
-                        */}
-
-                        <h4 style={subHeadingStyle}>Optional Details</h4>
-                        <div style={formGroupStyle}>
-                            <label htmlFor="status" style={labelStyle}>Status:</label>
-                            <select id="status" name="status" value={reportData.status} onChange={handleChange} style={selectStyle}>
-                                <option value="pending_review">Pending Review</option>
-                                <option value="under_investigation">Under Investigation</option>
-                                <option value="resolved">Resolved</option>
-                                <option value="closed">Closed</option>
-                            </select>
-                        </div>
-                        <div style={formGroupStyle}>
-                            <label htmlFor="priority" style={labelStyle}>Priority:</label>
-                            <select id="priority" name="priority" value={reportData.priority} onChange={handleChange} style={selectStyle}>
-                                <option value="low">Low</option>
-                                <option value="medium">Medium</option>
-                                <option value="high">High</option>
-                            </select>
-                        </div>
-
-                        {/* Evidence Upload Field */}
-                        <div style={formGroupStyle} className="file-upload-group">
-                            <label htmlFor="evidence" style={labelStyle}>Upload Evidence (Max 5 files):</label>
-                            <input
-                                type="file"
-                                id="evidence"
-                                name="evidence"
-                                multiple // Allow multiple file selection
-                                onChange={handleFileChange}
-                                style={fileInputStyle}
-                                accept="image/*,video/*,application/pdf" // Specify accepted file types
-                            />
-                            {reportData.evidence.length > 0 && (
-                                <div style={selectedFilesInfoStyle}>
-                                    <p>**Selected Files ({reportData.evidence.length}):**</p>
-                                    <ul style={{ listStyleType: 'none', padding: '0', margin: '0' }}>
-                                        {reportData.evidence.map((file, index) => (
-                                            <li key={index} style={{ marginBottom: '5px' }}>{file.name} ({Math.round(file.size / 1024)} KB)</li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            )}
+                            <p style={hintTextStyle}>Click on the map to select the incident location.</p>
+                            <div style={formGroupStyle}>
+                                <label htmlFor="incident_location_address" style={labelStyle}>Location Address (Auto-filled):</label>
+                                <input
+                                    type="text"
+                                    id="incident_location_address"
+                                    name="incident_location_address"
+                                    value={reportData.incident_location_address}
+                                    onChange={handleChange}
+                                    placeholder="Address will be filled from map selection"
+                                    style={inputStyle}
+                                    readOnly
+                                />
+                            </div>
+                            <div style={formGroupStyle}>
+                                <label htmlFor="incident_location_country" style={labelStyle}>Country (Auto-filled):</label>
+                                <input
+                                    type="text"
+                                    id="incident_location_country"
+                                    name="incident_location_country"
+                                    value={reportData.incident_location_country}
+                                    onChange={handleChange}
+                                    placeholder="Country will be filled from map selection"
+                                    style={inputStyle}
+                                    readOnly
+                                />
+                            </div>
                         </div>
                     </section>
 
-                    <button
-                        type="submit"
-                        style={submitButtonStyle}
-                        className="submit-button"
-                        disabled={isSubmitting}
-                    >
+                    <section style={{ marginBottom: '25px', padding: '25px', backgroundColor: '#fff', borderRadius: containerBorderRadius, boxShadow: '0 2px 8px rgba(0,0,0,0.03)', border: `1px solid ${lightGrayBorder}` }}>
+                        <h3 style={sectionHeadingStyle}>Evidence (Optional)</h3>
+                        <div style={formGroupStyle} className="file-upload-group">
+                            <label htmlFor="evidence_files" style={labelStyle}>Upload Files (Images, Videos, Documents - Max 5 files):</label>
+                            <input
+                                type="file"
+                                id="evidence_files"
+                                name="evidence_files"
+                                multiple
+                                accept="image/*,video/*,.pdf,.doc,.docx"
+                                onChange={handleFileChange}
+                                style={fileInputStyle}
+                            />
+                            {reportData.evidence.length > 0 && (
+                                <div style={selectedFilesInfoStyle}>
+                                    Selected files: {reportData.evidence.map(file => file.name).join(', ')}
+                                </div>
+                            )}
+                            <p style={hintTextStyle}>Supported formats: JPG, PNG, GIF, MP4, MOV, PDF, DOCX.</p>
+                        </div>
+                    </section>
+
+                    <button type="submit" disabled={isSubmitting} style={submitButtonStyle} className="submit-button">
                         {isSubmitting ? "Submitting..." : "Submit Report"}
                     </button>
                 </form>

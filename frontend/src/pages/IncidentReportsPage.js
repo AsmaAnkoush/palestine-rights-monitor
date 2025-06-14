@@ -13,13 +13,12 @@ const IncidentReportsPage = () => {
   const [editingReportId, setEditingReportId] = useState(null);
 
   const [analyticsData, setAnalyticsData] = useState([]);
-const [analyticsLoading, setAnalyticsLoading] = useState(true);
+  const [analyticsLoading, setAnalyticsLoading] = useState(true);
   const [analyticsError, setAnalyticsError] = useState(null);
 
   const limit = 10;
   const API_BASE_URL = 'http://localhost:8006';
 
-  // --- CSS Styles (unchanged) ---
   const thStyle = {
     padding: '14px',
     textAlign: 'left',
@@ -83,14 +82,12 @@ const [analyticsLoading, setAnalyticsLoading] = useState(true);
     backgroundColor: '#ef5350',
     padding: '8px 16px',
   };
-  // --- End of CSS Styles ---
 
   const fetchReports = async () => {
     setLoading(true);
     setError(null);
     try {
       const queryParams = new URLSearchParams();
-      // ✅ التعديل هنا: إضافة الفلاتر فقط إذا كانت لها قيمة غير فارغة
       if (filters.status) queryParams.append('status', filters.status);
 
       if (filters.incidentDate) {
@@ -107,8 +104,6 @@ const [analyticsLoading, setAnalyticsLoading] = useState(true);
       }
       const data = await response.json();
       setReports(data.reports);
-      // إذا كان الـ Backend يرجع "total" للصفحات، تأكد من استخدامه هنا:
-      // setTotalReports(data.total); // افترض أنك تملك هذا الـ state
     } catch (err) {
       console.error("Error fetching reports:", err);
       setError(err.message);
@@ -138,11 +133,11 @@ const [analyticsLoading, setAnalyticsLoading] = useState(true);
 
   useEffect(() => {
     fetchReports();
-  }, [filters]); // يعيد جلب التقارير عند تغير الفلاتر
+  }, [filters]);
 
   useEffect(() => {
     fetchAnalytics();
-  }, []); // يجلب تحليلات مرة واحدة عند تحميل المكون
+  }, []);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -161,7 +156,7 @@ const [analyticsLoading, setAnalyticsLoading] = useState(true);
   };
 
   const handleEditStatus = async (reportId, newStatus) => {
-    setLoading(true); // يمكن أن يكون هذا state منفصل لتحديث الحالة
+    setLoading(true);
     try {
       const response = await fetch(`${API_BASE_URL}/reports/${reportId}`, {
         method: 'PATCH',
@@ -176,13 +171,12 @@ const [analyticsLoading, setAnalyticsLoading] = useState(true);
         throw new Error(errorData.detail || 'Failed to update report status');
       }
 
-      // تحديث حالة التقرير في الـ state مباشرة
       setReports(prevReports =>
         prevReports.map(report =>
           report.report_id === reportId ? { ...report, status: newStatus } : report
         )
       );
-      setEditingReportId(null); // إيقاف وضع التحرير بعد التحديث
+      setEditingReportId(null);
     } catch (err) {
       console.error("Error updating report status:", err);
       setError(err.message);
@@ -197,7 +191,6 @@ const [analyticsLoading, setAnalyticsLoading] = useState(true);
         📋 Incident Reports Dashboard
       </h1>
 
-      {/* Analytics Section */}
       <div style={{ marginBottom: '2rem', backgroundColor: '#fff8e1', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', border: '1px solid #ffe0b2' }}>
         <h2 style={{ fontSize: '24px', marginBottom: '1rem', color: '#e65100', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
           <FaChartBar style={{ fontSize: '1.2em' }} /> Reports Analytics by Violation Type
@@ -223,7 +216,6 @@ const [analyticsLoading, setAnalyticsLoading] = useState(true);
                 maxWidth: 'calc(33% - 10px)',
               }}>
                 <p style={{ fontSize: '1.1em', fontWeight: 'bold', color: '#e65100', marginBottom: '5px' }}>
-                  {/* Access violation_type from analytics item */}
                   {item.violation_type.replace(/_/g, ' ')}
                 </p>
                 <p style={{ fontSize: '1.8em', fontWeight: 'bold', color: '#ff9800' }}>
@@ -235,7 +227,6 @@ const [analyticsLoading, setAnalyticsLoading] = useState(true);
         )}
       </div>
 
-      {/* Filter Section - Enhanced Layout & Styling */}
       <div style={{ marginBottom: '1.5rem', backgroundColor: '#fff3e0', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'flex-end', marginBottom: '10px' }}>
           <div style={{ flex: '1 1 200px', minWidth: '180px' }}>
@@ -294,7 +285,6 @@ const [analyticsLoading, setAnalyticsLoading] = useState(true);
         </div>
       </div>
 
-      {/* Loading, Error, and No Reports States */}
       {loading ? (
         <p style={{ textAlign: 'center', padding: '2rem', color: '#555' }}>Loading reports...</p>
       ) : error ? (
@@ -305,7 +295,6 @@ const [analyticsLoading, setAnalyticsLoading] = useState(true);
         </p>
       ) : (
         <>
-          {/* Reports Table - Enhanced Design */}
           <div style={{ overflowX: 'auto' }}>
             <table style={{
               width: '100%',
@@ -323,7 +312,6 @@ const [analyticsLoading, setAnalyticsLoading] = useState(true);
                   <th style={thStyle}>Location Address</th>
                   <th style={thStyle}>Reporter Type</th>
                   <th style={thStyle}>Priority</th>
-                  {/* تم إزالة عمود Related Case */}
                   <th style={{ ...thStyle, textAlign: 'center', minWidth: '100px' }}>Actions</th>
                 </tr>
               </thead>
@@ -371,16 +359,13 @@ const [analyticsLoading, setAnalyticsLoading] = useState(true);
                       )}
                     </td>
                     <td style={tdStyle}>
-                      {/* Access date from incident_details */}
                       {report.incident_details?.date ? new Date(report.incident_details.date).toLocaleDateString() : 'N/A'}
                     </td>
                     <td style={tdStyle}>
-                      {/* Access location address from incident_details.location */}
                       {report.incident_details?.location?.address || 'N/A'}
                     </td>
                     <td style={tdStyle}>{report.reporter_type}</td>
                     <td style={tdStyle}>{report.priority}</td>
-                    {/* تم إزالة خلية بيانات Related Case */}
                     <td style={{ ...tdStyle, whiteSpace: 'nowrap', textAlign: 'center' }}>
                       {editingReportId === report.report_id ? (
                         <button

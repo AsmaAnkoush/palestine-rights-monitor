@@ -47,7 +47,6 @@ const CasesPage = () => {
 
     try {
       const res = await api.get(`/cases/?${params.toString()}`);
-      // This line is important for flexibility in case the backend sends a JSON string
       const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
       setCases(data);
     } catch (err) {
@@ -109,11 +108,9 @@ const CasesPage = () => {
     }
   };
 
-  // --- CSS Styles ---
   const thStyle = {
     padding: '14px',
     textAlign: 'left',
-    // ... (rest of your thStyle remains the same)
     borderBottom: '2px solid #ffe0b2',
     fontSize: '14px',
     fontWeight: '600',
@@ -198,9 +195,7 @@ const CasesPage = () => {
         ➕ Add New Case
       </button>
 
-      {/* Filter and Search Fields - Enhanced Layout */}
       <div style={{ marginBottom: '1.5rem' }}>
-        {/* First Row of Filters */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'flex-end', marginBottom: '10px' }}>
           <div style={{ flex: '1 1 auto', minWidth: '200px' }}>
             <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '0.9em' }}>Search Title/Desc:</label>
@@ -228,7 +223,6 @@ const CasesPage = () => {
             />
           </div>
 
-          {/* Date Occurred - Moved here */}
           <div style={{ flex: '1 1 auto', minWidth: '180px' }}>
             <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '0.9em' }}>Date Occurred:</label>
             <input
@@ -255,7 +249,6 @@ const CasesPage = () => {
           </div>
         </div>
 
-        {/* Second Row of Filters (Status, Priority, Violation Type) and Buttons */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'flex-end' }}>
           <div style={{ flex: '1 1 auto', minWidth: '180px' }}>
             <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '0.9em' }}>Violation Type:</label>
@@ -322,7 +315,7 @@ const CasesPage = () => {
             Clear Filters
           </button>
         </div>
-      </div> {/* End of Filter and Search Fields */}
+      </div>
 
       {loading ? (
         <p style={{ textAlign: 'center', padding: '2rem', color: '#555' }}>Loading cases...</p>
@@ -350,7 +343,6 @@ const CasesPage = () => {
               {Array.isArray(cases) && cases.length > 0 ? (
                 cases.map((c, index) => (
                   <tr key={c.case_id} style={{ backgroundColor: index % 2 === 0 ? '#ffffff' : '#fffbe6' }}>
-                    {/* Displaying English value directly as per backend changes */}
                     <td style={tdStyle}>{c.title || '—'}</td>
                     
                     <td style={tdStyle}>{c.status || '—'}</td>

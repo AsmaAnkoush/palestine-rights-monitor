@@ -11,19 +11,16 @@ from fastapi.responses import JSONResponse, FileResponse
 from pydantic import BaseModel, Field, EmailStr
 from bson import ObjectId
 
-# Ensure you have your database dependency setup
-from dependencies import get_db # Assuming you have a dependencies.py file
-from pymongo.database import Database # Import Database type for type hinting
+from dependencies import get_db
+from pymongo.database import Database
 
 router = APIRouter()
 
-# Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 UPLOAD_DIRECTORY = "uploads/reports"
 os.makedirs(UPLOAD_DIRECTORY, exist_ok=True)
 
-# --- Define Pydantic models (Updated to match your current Mongo schema) ---
 class Attachment(BaseModel):
     filename: str
     filepath: str
@@ -37,98 +34,81 @@ class StatusChange(BaseModel):
     change_date: datetime = Field(default_factory=datetime.utcnow)
     changed_by: Optional[str] = "System"
 
-# Nested models for incident_details structure
 class IncidentLocation(BaseModel):
     country: str
     region: Optional[str] = None
     city: Optional[str] = None
     address: Optional[str] = None
-    coordinates: Optional[Dict[str, Any]] = Field(default_factory=lambda: {"type": "Point", "coordinates": [0, 0]}) # GeoJSON format
+    coordinates: Optional[Dict[str, Any]] = Field(default_factory=lambda: {"type": "Point", "coordinates": [0, 0]})
 
 class ContactInfo(BaseModel):
-    email: Optional[EmailStr] = None # Use EmailStr for email validation
+    email: Optional[EmailStr] = None
     phone: Optional[str] = None
     preferred_contact: Optional[str] = "email"
 
 class IncidentDetails(BaseModel):
-    date: datetime # Store as datetime object in Python, will be ISODate in Mongo
-    description: str # Made required based on form
-    violation_types: List[str] # Made required based on form
-    location: IncidentLocation # Now nested as per your MongoDB data
+    date: datetime
+    description: str
+    violation_types: List[str]
+    location: IncidentLocation
 
 class ReportCreate(BaseModel):
-    # These fields reflect how data is received when creating a NEW report
     title: str
     reporter_type: str
     priority: str
     status: str = Field("pending_review")
     related_case_id: Optional[str] = None
-    anonymous: bool # Added
-    pseudonym: Optional[str] = None # Added
-    contact_info: Optional[ContactInfo] = None # Added (if not anonymous)
+    anonymous: bool
+    pseudonym: Optional[str] = None
+    contact_info: Optional[ContactInfo] = None
 
-    # Incident details now comes as a nested Pydantic model (though we'll parse from form)
-    # This model defines the *target structure* in the DB, not how it's received via Form
-    incident_details: IncidentDetails 
-    # For actual file uploads, we use `files: List[UploadFile]` in the endpoint directly.
-    # `evidence` will be built from those files.
+    incident_details: IncidentDetails
 
 class ReportUpdate(BaseModel):
-    # For updates, we need to handle the fields where they are in the DB
     title: Optional[str] = None
     reporter_type: Optional[str] = None
     priority: Optional[str] = None
     status: Optional[str] = None
     related_case_id: Optional[str] = None
-    incident_details: Optional[Dict[str, Any]] = None # To allow updating nested fields
-    evidence: Optional[List[Attachment]] = None # For updating attachments
+    incident_details: Optional[Dict[str, Any]] = None
+    evidence: Optional[List[Attachment]] = None
     anonymous: Optional[bool] = None
     pseudonym: Optional[str] = None
     contact_info: Optional[ContactInfo] = None
 
 
-# Helper to serialize MongoDB ObjectId and datetime objects
 def serialize_doc(doc: Any) -> Any:
     if isinstance(doc, dict):
-        # Recursively process dictionary items
         return {k: serialize_doc(v) for k, v in doc.items()}
     elif isinstance(doc, list):
-        # Recursively process list items
         return [serialize_doc(item) for item in doc]
     elif isinstance(doc, ObjectId):
-        # Convert ObjectId to string
         return str(doc)
     elif isinstance(doc, datetime):
-        # Convert datetime to ISO format string
         return doc.isoformat()
-    # Handle cases where `filename` might have backslashes in `filepath`
     elif isinstance(doc, Attachment):
         doc_dict = doc.dict()
         if 'filepath' in doc_dict and isinstance(doc_dict['filepath'], str):
             doc_dict['filepath'] = doc_dict['filepath'].replace('\\', '/')
         return doc_dict
     else:
-        # Return other types as is
         return doc
 
-# --- API Routes ---
-
 @router.get("/reports/analytics")
-async def get_reports_analytics(db: Database = Depends(get_db)): # Use Database type hint
+async def get_reports_analytics(db: Database = Depends(get_db)):
     try:
         if await db["reports"].count_documents({}) == 0:
             return JSONResponse(content={"analytics": []})
 
         pipeline = [
-            # Now querying 'incident_details.violation_types' as per your existing data
             {"$match": {"incident_details.violation_types": {"$exists": True, "$ne": [], "$type": "array"}}},
             {"$unwind": "$incident_details.violation_types"},
             {"$group": {
-                "_id": "$incident_details.violation_types", # Grouping by the nested field
+                "_id": "$incident_details.violation_types",
                 "count": {"$sum": 1}
             }},
             {"$project": {
-                "violation_type": "$_id", # Renaming _id to violation_type for frontend
+                "violation_type": "$_id",
                 "count": 1,
                 "_id": 0
             }},
@@ -146,8 +126,8 @@ async def get_reports_analytics(db: Database = Depends(get_db)): # Use Database 
 async def create_report(
     title: str = Form(...),
     description: str = Form(...),
-    violation_type: str = Form(...), # Received as comma-separated string
-    incident_date: str = Form(...), # Received as YYYY-MM-DD string
+    violation_type: str = Form(...),
+    incident_date: str = Form(...),
     incident_location_country: str = Form(...),
     incident_location_region: Optional[str] = Form(None),
     incident_location_city: Optional[str] = Form(None),
@@ -157,39 +137,32 @@ async def create_report(
     priority: str = Form(...),
     status: str = Form("pending_review"),
     related_case_id: Optional[str] = Form(None),
-    anonymous: bool = Form(...), # Added from frontend
-    pseudonym: Optional[str] = Form(None), # Added from frontend
-    contact_info: Optional[str] = Form(None), # ContactInfo as JSON string
-    files: List[UploadFile] = File(None, alias="evidence"), # Name is 'evidence' in frontend
-    db: Database = Depends(get_db) # Use Database type hint
+    anonymous: bool = Form(...),
+    pseudonym: Optional[str] = Form(None),
+    contact_info: Optional[str] = Form(None),
+    files: List[UploadFile] = File(None, alias="evidence"),
+    db: Database = Depends(get_db)
 ):
     try:
         logging.info("Attempting to create a new report.")
         
-        # 1. Parse and validate incident_date
         try:
-            # MongoDB's ISODate is a datetime object, so convert directly to datetime
             parsed_incident_date = datetime.strptime(incident_date, "%Y-%m-%d")
             logging.info(f"Parsed incident_date: {parsed_incident_date}")
         except ValueError:
             logging.error(f"Invalid incident date format received: {incident_date}")
             raise HTTPException(status_code=400, detail="Invalid incident date format. Use `YYYY-MM-DD`.")
 
-        # 2. Parse violation_type string into a list
         violation_types_list = [v.strip() for v in violation_type.split(',') if v.strip()]
         logging.info(f"Parsed violation_types: {violation_types_list}")
 
-        # 3. Parse and validate incident_location_coordinates
         try:
             parsed_coordinates = json.loads(incident_location_coordinates)
-            # Ensure it's a valid GeoJSON Point structure and coordinates are [longitude, latitude]
             if not isinstance(parsed_coordinates, dict) or \
                parsed_coordinates.get("type") != "Point" or \
                not isinstance(parsed_coordinates.get("coordinates"), list) or \
                len(parsed_coordinates["coordinates"]) != 2:
                 raise ValueError("Invalid GeoJSON Point structure for coordinates.")
-            # Assume frontend sends [lat, lng], convert to [lng, lat] for GeoJSON
-            # If frontend already sends [lng, lat], remove this line:
             parsed_coordinates["coordinates"] = [
                 float(parsed_coordinates["coordinates"][1]), 
                 float(parsed_coordinates["coordinates"][0])
@@ -199,24 +172,21 @@ async def create_report(
             logging.error(f"Error parsing incident_location_coordinates: {e}. Raw: {incident_location_coordinates}")
             raise HTTPException(status_code=400, detail=f"Invalid incident_location_coordinates JSON format: {e}")
 
-        # 4. Parse contact_info if not anonymous
         parsed_contact_info = None
         if not anonymous and contact_info:
             try:
                 parsed_contact_info_dict = json.loads(contact_info)
-                parsed_contact_info = ContactInfo(**parsed_contact_info_dict) # Validate with Pydantic model
+                parsed_contact_info = ContactInfo(**parsed_contact_info_dict)
                 logging.info(f"Parsed contact_info: {parsed_contact_info.dict()}")
             except (json.JSONDecodeError, ValueError) as e:
                 logging.error(f"Error parsing contact_info: {e}. Raw: {contact_info}")
                 raise HTTPException(status_code=400, detail=f"Invalid contact_info JSON format: {e}")
         elif anonymous:
-            # If anonymous, ensure contact_info is null or empty
             parsed_contact_info = None
             logging.info("Report is anonymous, contact_info set to None.")
 
-        # 5. Build incident_details dictionary
         incident_details_dict = {
-            "date": parsed_incident_date, # This will be stored as ISODate
+            "date": parsed_incident_date,
             "description": description,
             "violation_types": violation_types_list,
             "location": {
@@ -229,38 +199,35 @@ async def create_report(
         }
         logging.info(f"Built incident_details: {incident_details_dict}")
 
-        # 6. Build the main report dictionary
         report_dict = {
             "title": title,
             "reporter_type": reporter_type,
             "priority": priority,
             "status": status,
             "related_case_id": related_case_id,
-            "report_id": f"IR-{str(ObjectId())[:8]}", # Generates ID with "IR-" prefix
+            "report_id": f"IR-{str(ObjectId())[:8]}",
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
-            "incident_details": incident_details_dict, # Nested incident details
-            "evidence": [], # Placeholder for attachments
+            "incident_details": incident_details_dict,
+            "evidence": [],
             "report_status_history": [
                 StatusChange(new_status=status, changed_by="Initial Creation").dict()
             ],
-            "anonymous": anonymous, # Added to report_dict
-            "pseudonym": pseudonym if anonymous else None, # Added to report_dict
-            "contact_info": parsed_contact_info.dict() if parsed_contact_info else None # Added to report_dict
+            "anonymous": anonymous,
+            "pseudonym": pseudonym if anonymous else None,
+            "contact_info": parsed_contact_info.dict() if parsed_contact_info else None
         }
         logging.info(f"Initial report_dict built: {report_dict}")
 
-        # 7. Handle file uploads and build evidence list
         uploaded_evidence = []
         if files:
-            for file_obj in files: # Renamed from 'file' to 'file_obj' to avoid conflict
+            for file_obj in files:
                 if not file_obj.filename:
                     continue
                 file_extension = os.path.splitext(file_obj.filename)[1]
                 unique_filename = f"{ObjectId()}{file_extension}"
                 file_path = os.path.join(UPLOAD_DIRECTORY, unique_filename)
                 
-                # IMPORTANT: Convert backslashes to forward slashes for URLs consistently
                 file_path_for_db = file_path.replace("\\", "/") 
 
                 try:
@@ -270,7 +237,7 @@ async def create_report(
 
                     attachment_data = Attachment(
                         filename=unique_filename,
-                        filepath=file_path_for_db, # Store with forward slashes
+                        filepath=file_path_for_db,
                         mimetype=file_obj.content_type,
                         size=file_obj.size if file_obj.size is not None else 0,
                         uploaded_at=datetime.utcnow()
@@ -278,23 +245,19 @@ async def create_report(
                     uploaded_evidence.append(attachment_data.dict())
                 except Exception as file_error:
                     logging.error(f"Error saving file {file_obj.filename}: {file_error}", exc_info=True)
-                    # Decide if you want to fail the whole request or just skip the file
                     raise HTTPException(status_code=500, detail=f"Failed to save evidence file {file_obj.filename}")
 
         report_dict["evidence"] = uploaded_evidence
         logging.info(f"Final report_dict before DB insert: {report_dict}")
 
-        # 8. Insert into MongoDB
         insert_result = await db["reports"].insert_one(report_dict)
         logging.info(f"MongoDB insert result: Acknowledged={insert_result.acknowledged}, Inserted ID={insert_result.inserted_id}")
 
         if not insert_result.acknowledged:
             raise HTTPException(status_code=500, detail="Failed to insert report into database (not acknowledged).")
 
-        # 9. Fetch the inserted document to ensure correct serialization for response
         returned_report = await db["reports"].find_one({"_id": insert_result.inserted_id})
         
-        # 10. Return serialized response
         if returned_report:
             return JSONResponse(content=serialize_doc(returned_report), status_code=201)
         else:
@@ -309,7 +272,7 @@ async def create_report(
 
 @router.get("/reports/")
 async def list_reports(
-    db: Database = Depends(get_db), # Use Database type hint
+    db: Database = Depends(get_db),
     status: Optional[str] = Query(None),
     start_date: Optional[str] = Query(None, alias="start_date"),
     end_date: Optional[str] = Query(None, alias="end_date"),
@@ -325,14 +288,12 @@ async def list_reports(
         date_query = {}
         if start_date:
             try:
-                # MongoDB stores date as ISODate, so we convert input to datetime
                 parsed_start_date = datetime.strptime(start_date, "%Y-%m-%d")
                 date_query["$gte"] = parsed_start_date
             except ValueError:
                 raise HTTPException(status_code=400, detail="Invalid start_date format. Use `%Y-%m-%d`.")
         if end_date:
             try:
-                # Include the whole day for end_date
                 parsed_end_date = datetime.strptime(end_date, "%Y-%m-%d").replace(hour=23, minute=59, second=59, microsecond=999999)
                 date_query["$lte"] = parsed_end_date
             except ValueError:
@@ -362,7 +323,7 @@ async def list_reports(
 
 
 @router.get("/reports/{report_id}")
-async def get_report_by_id(report_id: str, db: Database = Depends(get_db)): # Use Database type hint
+async def get_report_by_id(report_id: str, db: Database = Depends(get_db)):
     try:
         logging.info(f"Fetching report with report_id: {report_id}")
         report = await db["reports"].find_one({"report_id": report_id})
@@ -377,7 +338,7 @@ async def get_report_by_id(report_id: str, db: Database = Depends(get_db)): # Us
         raise HTTPException(status_code=500, detail="Failed to fetch report")
 
 @router.put("/reports/{report_id}")
-async def update_report(report_id: str, report_data: ReportUpdate, db: Database = Depends(get_db)): # Use Database type hint
+async def update_report(report_id: str, report_data: ReportUpdate, db: Database = Depends(get_db)):
     try:
         logging.info(f"Updating report with report_id: {report_id}. Data: {report_data.dict(exclude_unset=True)}")
         existing_report = await db["reports"].find_one({"report_id": report_id})
@@ -399,32 +360,23 @@ async def update_report(report_id: str, report_data: ReportUpdate, db: Database 
             )
             logging.info(f"Status history updated for report {report_id}.")
         
-        # Manually handle updating nested fields in incident_details if they are sent
         if "incident_details" in update_dict:
-            # Merge existing incident_details with new ones
             if "incident_details" in existing_report and isinstance(existing_report["incident_details"], dict):
                 existing_report["incident_details"].update(update_dict["incident_details"])
             else:
                 existing_report["incident_details"] = update_dict["incident_details"]
-            del update_dict["incident_details"] # Remove to prevent direct $set on the whole object
+            del update_dict["incident_details"]
             logging.info(f"Incident details updated for report {report_id}.")
 
-        # Manually handle updating 'evidence'
         if "evidence" in update_dict:
-            # This will replace the entire evidence array. Adjust if you need to add/remove specific items.
-            existing_report["evidence"] = [att.dict() for att in update_dict["evidence"]] # Ensure it's a list of dicts
+            existing_report["evidence"] = [att.dict() for att in update_dict["evidence"]]
             del update_dict["evidence"]
             logging.info(f"Evidence updated for report {report_id}.")
 
         update_dict["updated_at"] = datetime.utcnow()
         
-        # Use $set for remaining top-level fields
         await db["reports"].update_one({"report_id": report_id}, {"$set": update_dict})
         
-        # Update incident_details and evidence separately if they were modified
-        # This part handles cases where incident_details/evidence were updated in `existing_report` above
-        # If they were updated, the merge/replace already happened in existing_report.
-        # We need to explicitly push these changes back to the DB.
         set_nested_fields = {}
         if "incident_details" in existing_report:
             set_nested_fields["incident_details"] = existing_report["incident_details"]
@@ -448,7 +400,7 @@ async def update_report(report_id: str, report_data: ReportUpdate, db: Database 
         raise HTTPException(status_code=500, detail="Failed to update report")
 
 @router.patch("/reports/{report_id}")
-async def partial_update_report(report_id: str, report_data: ReportUpdate, db: Database = Depends(get_db)): # Use Database type hint
+async def partial_update_report(report_id: str, report_data: ReportUpdate, db: Database = Depends(get_db)):
     try:
         logging.info(f"Partially updating report with report_id: {report_id}. Data: {report_data.dict(exclude_unset=True)}")
         existing_report = await db["reports"].find_one({"report_id": report_id})
@@ -473,7 +425,6 @@ async def partial_update_report(report_id: str, report_data: ReportUpdate, db: D
             )
             logging.info(f"Status history updated for report {report_id} during partial update.")
 
-        # Manually handle updating nested fields in incident_details if they are sent
         if "incident_details" in update_dict:
             if "incident_details" in existing_report and isinstance(existing_report["incident_details"], dict):
                 existing_report["incident_details"].update(update_dict["incident_details"])
@@ -482,7 +433,6 @@ async def partial_update_report(report_id: str, report_data: ReportUpdate, db: D
             del update_dict["incident_details"]
             logging.info(f"Incident details updated for report {report_id} during partial update.")
 
-        # Manually handle updating 'evidence'
         if "evidence" in update_dict:
             existing_report["evidence"] = [att.dict() for att in update_dict["evidence"]]
             del update_dict["evidence"]
@@ -491,7 +441,6 @@ async def partial_update_report(report_id: str, report_data: ReportUpdate, db: D
         update_dict["updated_at"] = datetime.utcnow()
         await db["reports"].update_one({"report_id": report_id}, {"$set": update_dict})
 
-        # Push nested fields that might have been updated manually
         set_nested_fields = {}
         if "incident_details" in existing_report:
             set_nested_fields["incident_details"] = existing_report["incident_details"]
@@ -515,7 +464,7 @@ async def partial_update_report(report_id: str, report_data: ReportUpdate, db: D
         raise HTTPException(status_code=500, detail="Failed to partially update report")
 
 @router.delete("/reports/{report_id}")
-async def delete_report(report_id: str, db: Database = Depends(get_db)): # Use Database type hint
+async def delete_report(report_id: str, db: Database = Depends(get_db)):
     try:
         logging.info(f"Deleting report with report_id: {report_id}")
         result = await db["reports"].delete_one({"report_id": report_id})

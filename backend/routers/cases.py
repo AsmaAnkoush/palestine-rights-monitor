@@ -1,6 +1,3 @@
-# cases.py
-# IMPORTANT: لا يوجد استيراد مباشر لـ 'db' هنا بعد الآن.
-# سيتم حقن 'db' كاعتمادية (dependency) من خلال FastAPI.
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Query, Body, Depends
 from typing import List, Optional, Dict, Any
 from bson import ObjectId
@@ -11,39 +8,33 @@ import json
 import mimetypes
 import re
 from pydantic import BaseModel, Field, EmailStr
-from fastapi.responses import JSONResponse, FileResponse # للتأكد من استيراد JSONResponse و FileResponse
+from fastapi.responses import JSONResponse, FileResponse
 
-# استيراد get_db من ملف dependencies.py الجديد
-from dependencies import get_db # <-- هذا هو التغيير الحاسم هنا
+from dependencies import get_db
 
 router = APIRouter()
 
-UPLOAD_DIRECTORY = "uploads" # هذا يجب أن يكون مسار مجلد التحميل الرئيسي لمشروعك
+UPLOAD_DIRECTORY = "uploads"
 if not os.path.exists(UPLOAD_DIRECTORY):
     os.makedirs(UPLOAD_DIRECTORY)
 
-# --- Define Pydantic models (unchanged) ---
 class Demographics(BaseModel):
-    """Pydantic model for demographic information."""
     gender: Optional[str] = None
     age: Optional[int] = Field(None, ge=0)
     ethnicity: Optional[str] = None
     occupation: Optional[str] = None
 
 class IndividualContactInfo(BaseModel):
-    """Pydantic model for contact information in the new schema."""
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
     secure_messaging: Optional[str] = None
 
 class RiskAssessment(BaseModel):
-    """Pydantic model for risk assessment details."""
     level: str = Field("low", description="Risk level: low, medium, or high.")
     threats: Optional[List[str]] = Field(None, description="List of identified threats.")
     protection_needed: Optional[bool] = Field(False, description="Whether protection is needed.")
 
 class VictimCreate(BaseModel):
-    """Pydantic model for creating a new victim/witness (individual)."""
     type: str = Field(..., description="Type of individual: 'victim' or 'witness'.")
     anonymous: bool = Field(False, description="True if the individual wishes to remain anonymous.")
     demographics: Optional[Demographics] = Field(None, description="Demographic details of the individual.")
@@ -105,10 +96,8 @@ def serialize_doc(doc: Any) -> Any:
     else:
         return doc
 
-# --- API Routes - الآن تستقبل 'db' كاعتمادية ---
-
 @router.get("/cases/titles")
-async def get_case_titles(db: Any = Depends(get_db)): # <-- هذا هو التغيير
+async def get_case_titles(db: Any = Depends(get_db)):
     try:
         titles_cursor = db["cases"].find({}, {"case_id": 1, "title": 1, "case_type": 1, "_id": 0})
         titles_docs = await titles_cursor.to_list(length=None)
@@ -132,7 +121,7 @@ async def get_case_titles(db: Any = Depends(get_db)): # <-- هذا هو التغ
         raise HTTPException(status_code=500, detail=f"Failed to fetch case titles: {str(e)}")
 
 @router.get("/cases/violation_types")
-async def get_violation_types(db: Any = Depends(get_db), lang: str = "en"): # <-- هذا هو التغيير
+async def get_violation_types(db: Any = Depends(get_db), lang: str = "en"):
     try:
         pipeline = [
             {"$unwind": "$violation_types"},
@@ -167,7 +156,7 @@ async def create_case(
     date_occurred: str = Form(...),
     case_type: Optional[str] = Form(None),
     files: List[UploadFile] = File(None),
-    db: Any = Depends(get_db) # <-- هذا هو التغيير
+    db: Any = Depends(get_db)
 ):
     try:
         violation_types_list = [v.strip() for v in violation_types.split(',') if v.strip()]
@@ -226,7 +215,7 @@ async def create_case(
 
 @router.get("/cases/")
 async def get_cases(
-    db: Any = Depends(get_db), # <-- هذا هو التغيير
+    db: Any = Depends(get_db),
     location_country: Optional[str] = Query(None),
     location_region: Optional[str] = Query(None),
     violation_type: Optional[str] = Query(None),
@@ -269,7 +258,7 @@ async def get_cases(
         raise HTTPException(status_code=500, detail="Internal Server Error")
 
 @router.get("/cases/{case_id}")
-async def get_case_by_id(case_id: str, db: Any = Depends(get_db)): # <-- هذا هو التغيير
+async def get_case_by_id(case_id: str, db: Any = Depends(get_db)):
     try:
         case = await db["cases"].find_one({"case_id": case_id})
         if not case:
@@ -280,7 +269,7 @@ async def get_case_by_id(case_id: str, db: Any = Depends(get_db)): # <-- هذا 
         raise HTTPException(status_code=500, detail="Failed to fetch case")
 
 @router.put("/cases/{case_id}")
-async def update_case(case_id: str, case_data: CaseUpdate, db: Any = Depends(get_db)): # <-- هذا هو التغيير
+async def update_case(case_id: str, case_data: CaseUpdate, db: Any = Depends(get_db)):
     try:
         existing_case = await db["cases"].find_one({"case_id": case_id})
         if not existing_case:
@@ -297,7 +286,7 @@ async def update_case(case_id: str, case_data: CaseUpdate, db: Any = Depends(get
             await db["cases"].update_one({"case_id": case_id}, {"$push": {"case_status_history": status_change}})
         update_data["updated_at"] = datetime.utcnow()
         await db["cases"].update_one({"case_id": case_id}, {"$set": update_data})
-        updated_case = await db["cases"].find_one({"_id": update_data.get("_id", existing_case["_id"])}) # Use _id to find updated case
+        updated_case = await db["cases"].find_one({"_id": update_data.get("_id", existing_case["_id"])})
         return JSONResponse(content=serialize_doc(updated_case))
     except HTTPException as e:
         raise e
@@ -306,7 +295,7 @@ async def update_case(case_id: str, case_data: CaseUpdate, db: Any = Depends(get
         raise HTTPException(status_code=500, detail="Failed to update case")
 
 @router.patch("/cases/{case_id}")
-async def partial_update_case(case_id: str, case_data: CaseUpdate, db: Any = Depends(get_db)): # <-- هذا هو التغيير
+async def partial_update_case(case_id: str, case_data: CaseUpdate, db: Any = Depends(get_db)):
     try:
         existing_case = await db["cases"].find_one({"case_id": case_id})
         if not existing_case:
@@ -323,7 +312,7 @@ async def partial_update_case(case_id: str, case_data: CaseUpdate, db: Any = Dep
             await db["cases"].update_one({"case_id": case_id}, {"$push": {"case_status_history": status_change}})
         update_data["updated_at"] = datetime.utcnow()
         await db["cases"].update_one({"case_id": case_id}, {"$set": update_data})
-        updated_case = await db["cases"].find_one({"_id": update_data.get("_id", existing_case["_id"])}) # Use _id to find updated case
+        updated_case = await db["cases"].find_one({"_id": update_data.get("_id", existing_case["_id"])})
         return JSONResponse(content=serialize_doc(updated_case))
     except HTTPException as e:
         raise e
@@ -332,7 +321,7 @@ async def partial_update_case(case_id: str, case_data: CaseUpdate, db: Any = Dep
         raise HTTPException(status_code=500, detail="Failed to partially update case")
 
 @router.delete("/cases/{case_id}")
-async def delete_case(case_id: str, db: Any = Depends(get_db)): # <-- هذا هو التغيير
+async def delete_case(case_id: str, db: Any = Depends(get_db)):
     try:
         result = await db["cases"].delete_one({"case_id": case_id})
         if result.deleted_count == 1:
@@ -341,4 +330,3 @@ async def delete_case(case_id: str, db: Any = Depends(get_db)): # <-- هذا ه�
     except Exception as e:
         print(f"❌ Error in DELETE /cases/{case_id}:", e)
         raise HTTPException(status_code=500, detail="Failed to delete case")
-

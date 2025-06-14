@@ -12,7 +12,6 @@ const VictimDetailsPage = () => {
       setLoading(true);
       setError(null);
       try {
-        // Corrected API_BASE_URL and path
         const response = await fetch(`http://localhost:8006/victims/${id}`);
         if (!response.ok) {
           throw new Error(`Failed to fetch victim details: ${response.statusText}`);
@@ -33,7 +32,6 @@ const VictimDetailsPage = () => {
   if (error) return <p style={{ color: 'red' }}>Error: {error}</p>;
   if (!victim) return <p>Victim not found.</p>;
 
-  // Basic styling for details page
   const detailContainerStyle = {
     backgroundColor: '#fff3e0',
     padding: '30px',

@@ -13,7 +13,7 @@ const CaseForm = () => {
     date_occurred: '',
   });
 
-  const [selectedFiles, setSelectedFiles] = useState([]); // <-- جديد: حالة لتخزين الملفات المختارة
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [successMessage, setSuccessMessage] = useState('');
 
   const handleChange = (e) => {
@@ -26,47 +26,37 @@ const CaseForm = () => {
     setForm((prev) => ({ ...prev, violation_types: values }));
   };
 
-  // <-- دالة جديدة للتعامل مع اختيار الملفات
   const handleFileChange = (e) => {
-    setSelectedFiles(Array.from(e.target.files)); // تحويل FileList إلى Array
+    setSelectedFiles(Array.from(e.target.files));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSuccessMessage(''); // مسح الرسالة السابقة
+    setSuccessMessage('');
 
-    const formData = new FormData(); // <-- استخدم FormData لإرسال الملفات والبيانات معاً
+    const formData = new FormData();
 
-    // 1. إضافة حقول النموذج النصية إلى FormData
-    // **مهم:** يجب أن تتطابق أسماء الحقول هنا ('title', 'description', إلخ) 
-    // مع أسماء البارامترات في دالة create_case في الـ Backend (مثال: title: str = Form(...))
     formData.append('title', form.title);
     formData.append('description', form.description);
-    // 'violation_types' يتم إرسالها كسلسلة مفصولة بفاصلة
-    formData.append('violation_types', form.violation_types.join(',')); 
+    formData.append('violation_types', form.violation_types.join(','));
     formData.append('status', form.status);
     formData.append('priority', form.priority);
     formData.append('country', form.country);
     formData.append('region', form.region);
     formData.append('date_occurred', form.date_occurred);
 
-    // 2. إضافة الملفات المختارة إلى FormData
-    // 'files' يجب أن تتطابق مع اسم البارامتر في الـ Backend (files: List[UploadFile] = File(None))
     selectedFiles.forEach((file) => {
-      formData.append('files', file); 
+      formData.append('files', file);
     });
 
     try {
-      // <-- أرسل FormData مباشرةً. Axios سيقوم تلقائياً بتعيين 'Content-Type: multipart/form-data'
       await api.post('/cases/', formData, {
         headers: {
-          // رغم أن Axios يضبطها تلقائياً، يمكن تحديدها بوضوح لزيادة الوضوح
-          'Content-Type': 'multipart/form-data', 
+          'Content-Type': 'multipart/form-data',
         },
       });
 
       setSuccessMessage('✅ Case created successfully!');
-      // مسح النموذج بعد النجاح
       setForm({
         title: '',
         description: '',
@@ -77,7 +67,7 @@ const CaseForm = () => {
         region: '',
         date_occurred: '',
       });
-      setSelectedFiles([]); // <-- مسح الملفات المختارة بعد الرفع الناجح
+      setSelectedFiles([]);
     } catch (err) {
       console.error('❌ Error creating case:', err.response ? err.response.data : err);
       alert('❌ Error creating case');
@@ -207,23 +197,20 @@ const CaseForm = () => {
             <input type="date" name="date_occurred" value={form.date_occurred} onChange={handleChange} style={inputStyle} />
           </div>
 
-          {/* <-- حقل جديد لرفع الملفات --> */}
           <div>
             <label style={labelStyle}>Attachments (Images, PDFs, Videos, etc.)</label>
             <input
               type="file"
-              multiple // للسماح باختيار ملفات متعددة
+              multiple
               onChange={handleFileChange}
               style={{ ...inputStyle, padding: '8px', cursor: 'pointer' }}
             />
-            {/* عرض أسماء الملفات المختارة للمستخدم */}
             {selectedFiles.length > 0 && (
               <p style={{ fontSize: '0.9em', color: '#666', marginTop: '5px' }}>
                 Selected: {selectedFiles.map(file => file.name).join(', ')}
               </p>
             )}
           </div>
-          {/* نهاية حقل رفع الملفات */}
 
           <button
             type="submit"

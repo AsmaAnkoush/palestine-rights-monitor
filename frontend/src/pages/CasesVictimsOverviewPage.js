@@ -1,14 +1,13 @@
-// src/pages/CasesVictimsOverviewPage.jsx
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { FaUsers, FaFolderOpen, FaSpinner, FaExclamationCircle } from 'react-icons/fa'; // تم حذف FaEye
+import { FaUsers, FaFolderOpen, FaSpinner, FaExclamationCircle } from 'react-icons/fa';
 
 const CasesVictimsOverviewPage = () => {
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const API_BASE_URL = 'http://localhost:8006'; // Your FastAPI backend URL
+  const API_BASE_URL = 'http://localhost:8006';
 
   useEffect(() => {
     const fetchCasesAndVictims = async () => {
@@ -32,7 +31,6 @@ const CasesVictimsOverviewPage = () => {
     fetchCasesAndVictims();
   }, []);
 
-  // --- Styles (simplified for brevity, adopt your existing styles) ---
   const containerStyle = {
     padding: '3rem',
     backgroundColor: '#fffbe6',
@@ -143,11 +141,10 @@ const CasesVictimsOverviewPage = () => {
                   <td style={tdStyle}>{caseItem.title}</td>
                   <td style={tdStyle}>{caseItem.status}</td>
                   <td style={tdStyle}>
-                    {/* ✅ تم إزالة زر "View Case Details" من هنا */}
                     <Link
                       to={`/admin/victims/case/${caseItem.case_id}`}
                       title="View Linked Individuals"
-                      style={{ color: '#007bff' }} // تأكد من اللون ليظهر بشكل جيد
+                      style={{ color: '#007bff' }}
                     >
                       <FaUsers />
                     </Link>

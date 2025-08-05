@@ -1,5 +1,6 @@
 # 🛡️ Human Rights Monitor – MIS
-This is a university project for the COMP4382 course . It is a system to report and track human rights violations. The system has a backend using FastAPI and a frontend built with React.
+This is a university project for the **COMP4382** course.  
+It is a full-stack system to report, manage, and track human rights violations.
 
 ## Project Structure
 - backend/: FastAPI backend with MongoDB database  
@@ -57,6 +58,6 @@ It connects to the backend at http://localhost:8006.
 
 
 
+## 📄 API Documentation
+- FastAPI Swagger UI: [http://localhost:8006/docs](http://localhost:8006/docs)
 
-## API Docs
-Swagger (FastAPI): http://localhost:8006/docs

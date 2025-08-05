@@ -6,7 +6,6 @@ with authentication implemented using **JWT (JSON Web Tokens)**.
 ## Project Structure
 - backend/: FastAPI backend with MongoDB database  
 - frontend/: React frontend for the user interface  
-- README.md: This file
 
 ## How to Run the Project
 

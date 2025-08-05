@@ -26,27 +26,26 @@ It connects to the backend at http://localhost:8006.
 - Asmaa Ankoush – Victim/Witness Database ( Task 3 )
 
 ## 📸 Screenshots
-
 ### 🔐 Login Page
-![Login Page](screenshots/login.PNG)
+![Login Page](backend/screenshots/login.PNG)
 
 ### 🧍 Victim/Witness Database
-![Victim Page](screenshots/victims.PNG)
+![Victim Page](backend/screenshots/victims.PNG)
 
 ### 🗺️ Interactive Map
-![Map Page](screenshots/map.PNG)
+![Map Page](backend/screenshots/map.PNG)
 
 ### 📄 Reports List
-![Reports Page](screenshots/reports.PNG)
+![Reports Page](backend/screenshots/reports.PNG)
 
 ### ➕ Add New Case
-![Add Case](screenshots/addCase.PNG)
+![Add Case](backend/screenshots/addCase.PNG)
 
 ### 📊 Dashboard Overview
-![Dashboard](screenshots/dashord.PNG)
+![Dashboard](backend/screenshots/dashord.PNG)
 
 ### 🏠 Hero / Landing Page
-![Hero Page](screenshots/hero.png)
+![Hero Page](backend/screenshots/hero.png)
 
 
 ## API Docs

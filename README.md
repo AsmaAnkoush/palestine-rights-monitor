@@ -1,4 +1,4 @@
-# 🛡️ Human Rights Monitor – MIS
+#  Human Rights Monitor – MIS
 This is a university project for the **COMP4382** course.  
 It is a full-stack system to report, manage, and track human rights violations.
 
